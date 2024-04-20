@@ -211,6 +211,8 @@ def selected_value_to_singer_value_impl(elem, og_sql_datatype, conn_info):
 
     if elem is None:
         return elem
+    if sql_datatype.find('[]') > 0:
+        return json.loads(elem)
 
     if sql_datatype == 'money':
         return elem
@@ -344,11 +346,12 @@ def selected_array_to_singer_value(elem, sql_datatype, conn_info):
 
 def selected_value_to_singer_value(elem, sql_datatype, conn_info):
     # are we dealing with an array?
+    '''
     if sql_datatype.find('[]') > 0:
         cleaned_elem = create_array_elem(elem, sql_datatype, conn_info)
         return list(map(lambda elem: selected_array_to_singer_value(elem, sql_datatype, conn_info),
                         (cleaned_elem or [])))
-
+    '''
     return selected_value_to_singer_value_impl(elem, sql_datatype, conn_info)
 
 
