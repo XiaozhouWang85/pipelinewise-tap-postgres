@@ -393,12 +393,6 @@ def consume_message(streams, state, msg, time_extracted, conn_info):
 
     streams_lookup = {s['tap_stream_id']: s for s in streams}
 
-    tap_stream_id = post_db.compute_tap_stream_id(payload['schema'], payload['table'])
-    if streams_lookup.get(tap_stream_id) is None:
-        return state
-
-    target_stream = streams_lookup[tap_stream_id]
-
     # Example of Insert payload:
     # {
     #   "action":"I",
@@ -431,8 +425,15 @@ def consume_message(streams, state, msg, time_extracted, conn_info):
     # T = Truncate
     action = payload['action']
 
+    # B/C/M/T payloads carry no schema/table (they aren't row changes), so skip them here
     if action not in {'I', 'U', 'D'}:
-        raise UnsupportedPayloadKindError(f"unrecognized replication operation: {action}")
+        return state
+
+    tap_stream_id = post_db.compute_tap_stream_id(payload['schema'], payload['table'])
+    if streams_lookup.get(tap_stream_id) is None:
+        return state
+
+    target_stream = streams_lookup[tap_stream_id]
 
     # Get the additional fields in payload that are not in schema properties:
     # only inserts and updates have the list of columns that can be used to detect any different in columns
