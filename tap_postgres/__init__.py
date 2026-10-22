@@ -314,6 +314,13 @@ def do_sync(conn_config, catalog, default_replication_method, state, state_file=
                                         state,
                                         sync_method_lookup[stream['tap_stream_id']],
                                         end_lsn)
+        # Include completed snapshots in an existing CDC phase. Otherwise
+        # pruning drops their bookmarks and the shared slot can advance without
+        # decoding their changes, especially for resumed snapshots at older LSNs.
+        # Leave snapshot-only runs unchanged so callers can bootstrap in groups.
+        if logical_streams and sync_method_lookup[stream['tap_stream_id']] in {
+                'logical_initial', 'logical_initial_interrupted'}:
+            logical_streams.append(stream)
 
     logical_streams.sort(key=lambda s: metadata.to_map(s['metadata']).get(()).get('database-name'))
     for dbname, streams in itertools.groupby(logical_streams,
